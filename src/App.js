@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react'; // useState와 useEffect도 여기서 한번에 가져옵니다.
 import { BrowserRouter as Router, Route, Routes, Link, useParams } from 'react-router-dom';
 import './App.css';
 
@@ -6,7 +6,11 @@ import './App.css';
 function Header({ title }) {
   return (
     <header className="app-header">
-      <div className="top-logo">{title ? <h1>{title}</h1> : <Link to="/"><h1>HELPER</h1></Link>}</div>
+       <div className="top-logo">
+        {title ? <h1>{title}</h1> : <Link to="/">
+          <img src="/src/ic_helperlogo.svg" className="logo-image" />
+        </Link>}
+      </div>
       <nav className="top-nav">
         <Link to="/" className="nav-link">홈</Link>
         <Link to="/map" className="nav-link">약국 찾기</Link>
@@ -19,7 +23,6 @@ function Header({ title }) {
 function Home() {
   return (
     <div>
-      <Header />
       {/* 메인 비주얼 섹션 - 서비스에 대한 간단한 소개 */}
       <section className="main-visual">
         <div className="txt-area">
@@ -31,8 +34,8 @@ function Home() {
         </div>
       </section>
       {/* 증상 리스트 섹션 - 각 증상을 선택할 수 있는 카드 형태의 링크들 */}
-      <div className="symptom-list">
-        {['두통', '소화불량', '근육통', '감기', '테스트1', '테스트2', '테스트3', '테스트4'].map((symptom, index) => (
+      <div className="symptom-list" style={{ padding: '0 40px' }}>
+        {['두통', '소화불량', '근육통', '감기', '테스트1', '테스트2'].map((symptom, index) => (
           <Link key={index} to={`/medicines/${symptom}`} className="symptom-card">
             <p>{symptom}</p>
           </Link>
@@ -42,30 +45,32 @@ function Home() {
   );
 }
 
+
 // 약품 리스트 컴포넌트 - 선택한 증상에 대한 약품 리스트를 보여줌
 function MedicineList() {
   const { symptom } = useParams();
+  const [medicines, setMedicines] = useState([]);
   const title = symptom ? `${symptom}에 대한 약품 리스트` : '약품 리스트';
-  const medicines = {
-    두통: ['타이레놀', '게보린', '이지엔6'],
-    소화불량: ['베아제', '훼스탈', '겔포스'],
-    근육통: ['마이프로펜', '파스', '근육이완제'],
-    감기: ['판콜에이', '콜대원', '화이투벤']
-  };
+
+  useEffect(() => {
+    fetch(`http://localhost:8080/api/medicines/${symptom}`)
+      .then(response => response.json())
+      .then(data => setMedicines(data))
+      .catch(error => console.error('Error fetching medicines:', error));
+  }, [symptom]);
 
   return (
     <div>
-      <Header title={title} />
-      <h2>{symptom}에 대한 약품 리스트</h2>
-      <ul>
-        {/* 선택한 증상에 해당하는 약품들을 리스트로 표시 */}
-        {(medicines[symptom] || []).map((medicine, index) => (
-          <li key={index}>
-            <Link to={`/medicine-detail/${medicine}`}>{medicine}</Link>
-          </li>
+      <section className="main-visual">
+        <h2>{title}</h2>
+      </section>
+      <div className="medicine-list">
+        {medicines.map((medicine, index) => (
+          <Link key={index} to={`/medicine-detail/${medicine}`} className="medicine-card">
+            <p>{medicine}</p>
+          </Link>
         ))}
-      </ul>
-      <Link to="/">홈으로</Link>
+      </div>
     </div>
   );
 }
@@ -73,33 +78,29 @@ function MedicineList() {
 // 약품 상세 정보 컴포넌트 - 선택한 약품의 상세 정보를 보여줌
 function MedicineDetail() {
   const { medicine } = useParams();
+  const [detail, setDetail] = useState('');
   const title = medicine ? `${medicine} 상세 정보` : '약품 상세 정보';
-  const medicineDetails = {
-    타이레놀: '타이레놀은 두통에 효과가 있는 일반 의약품입니다.',
-    게보린: '게보린은 빠른 두통 완화에 효과적입니다.',
-    이지엔6: '이지엔6는 두통과 생리통 완화에 도움을 줍니다.',
-    베아제: '베아제는 소화불량에 효과가 있는 소화제입니다.',
-    훼스탈: '훼스탈은 소화를 도와주는 약품입니다.',
-    겔포스: '겔포스는 속쓰림과 소화불량 완화에 도움을 줍니다.',
-    마이프로펜: '마이프로펜은 근육통 완화에 효과적인 진통제입니다.',
-    파스: '파스는 근육통 완화에 사용되는 외용 약품입니다.',
-    근육이완제: '근육이완제는 근육통 및 긴장 완화에 도움을 줍니다.',
-    판콜에이: '판콜에이는 감기 증상 완화에 도움을 주는 약품입니다.',
-    콜대원: '콜대원은 감기와 기침 증상 완화에 효과적입니다.',
-    화이투벤: '화이투벤은 감기 증상 완화에 도움이 되는 약품입니다.'
-  };
+
+  useEffect(() => {
+    fetch(`http://localhost:8080/api/medicine-detail/${medicine}`)
+      .then(response => response.json())
+      .then(data => setDetail(data.detail))
+      .catch(error => console.error('Error fetching medicine detail:', error));
+  }, [medicine]);
 
   return (
     <div>
-      <Header title={title} />
-      <h2>{medicine} 상세 정보</h2>
-      {/* 선택한 약품에 대한 상세 정보를 표시 */}
-      <p>{medicineDetails[medicine] || '정보 없음'}</p>
-      <Link to="/map">인근 약국 보기</Link>
-      <Link to="/">홈으로</Link>
+      <section className="main-visual">
+        <h2>{title}</h2>
+      </section>
+  
+      <div className="medicine-detail" style={{ position: 'relative' }}>
+        <p className="medicine-info">{detail || '정보 없음'}</p>
+        <Link to="/map" className="medicine-button" style={{ position: 'absolute', right: '20px', bottom: '20px' }}>인근 약국 보기</Link>
+      </div>
     </div>
   );
-}
+}  
 
 // 약국 위치 정보 지도 컴포넌트 - 인근 약국 위치를 보여줌
 function Map() {
@@ -134,11 +135,9 @@ function Map() {
 
   return (
     <div>
-      <Header title="인근 약국 위치" />
       <h2>인근 약국 위치</h2>
       {/* 지도를 표시할 div 요소 */}
       <div id="map"></div>
-      <Link to="/">홈으로</Link>
     </div>
   );
 }
@@ -147,12 +146,15 @@ function Map() {
 function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/medicines/:symptom" element={<MedicineList />} />
-        <Route path="/medicine-detail/:medicine" element={<MedicineDetail />} />
-        <Route path="/map" element={<Map />} />
-      </Routes>
+      <div>
+        <Header /> {/* 모든 페이지에서 공통으로 사용하는 헤더 */}
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/medicines/:symptom" element={<MedicineList />} />
+          <Route path="/medicine-detail/:medicine" element={<MedicineDetail />} />
+          <Route path="/map" element={<Map />} />
+        </Routes>
+      </div>
     </Router>
   );
 }
